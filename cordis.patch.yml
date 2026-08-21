@@ -1,0 +1,11 @@
+# Installed by `dsh plugin --profile web add .`.
+- insert:
+    - id: project-terminal
+      name: dsh-project-terminal
+      config:
+        setupStatePath: !!js dshHomePath('project-terminal/setup-state.json')
+        environmentFile: .dsh/environment.json
+        maxTerminals: 8
+        maxScrollbackBytes: 1048576
+        shellGraceMs: 3000
+        agentReadMaxLines: 120
