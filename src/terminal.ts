@@ -109,9 +109,11 @@ export class HumanTerminal {
     void handle.done.then((outcome) => {
       this.outcome = outcome
       this.accept(this.decoder.end())
+      this.completeActive(outcome.exitCode ?? 1)
     }).catch((error: unknown) => {
       this.outcome = { exitCode: null, signal: null }
       this.accept(`\r\n[dsh-project-terminal transport failed: ${String(error)}]\r\n`)
+      this.completeActive(1)
     })
   }
 
@@ -200,26 +202,30 @@ export class HumanTerminal {
       const nonce = match[1]
       const exitCode = Number(match[2])
       if (this.activeRun?.nonce !== nonce || !Number.isSafeInteger(exitCode)) continue
-      const active = this.activeRun
-      const finished: ActionRunSnapshot = {
-        id: active.id,
-        actionId: active.actionId,
-        label: active.label,
-        kind: active.kind,
-        status: exitCode === 0 ? 'succeeded' : 'failed',
-        startedAt: active.startedAt,
-        finishedAt: new Date().toISOString(),
-        exitCode,
-      }
-      this.activeRun = undefined
-      this.lastRun = finished
-      if (active.onComplete !== undefined) {
-        void Promise.resolve(active.onComplete(exitCode)).catch((error: unknown) => {
-          this.output.append(`\r\n[dsh-project-terminal setup state write failed: ${String(error)}]\r\n`)
-        })
-      }
+      this.completeActive(exitCode)
     }
     this.markerTail = searchable.slice(-256)
+  }
+
+  private completeActive(exitCode: number): void {
+    const active = this.activeRun
+    if (active === undefined) return
+    this.activeRun = undefined
+    this.lastRun = {
+      id: active.id,
+      actionId: active.actionId,
+      label: active.label,
+      kind: active.kind,
+      status: exitCode === 0 ? 'succeeded' : 'failed',
+      startedAt: active.startedAt,
+      finishedAt: new Date().toISOString(),
+      exitCode,
+    }
+    if (active.onComplete !== undefined) {
+      void Promise.resolve(active.onComplete(exitCode)).catch((error: unknown) => {
+        this.output.append(`\r\n[dsh-project-terminal setup state write failed: ${String(error)}]\r\n`)
+      })
+    }
   }
 
   private discoverPorts(text: string): void {

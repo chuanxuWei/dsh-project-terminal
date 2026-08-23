@@ -55,6 +55,7 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [terminalGeneration, setTerminalGeneration] = useState(0)
   const terminalHost = useRef<HTMLDivElement>(null)
   const terminalInstance = useRef<Terminal>()
   const trigger = useRef<HTMLButtonElement>(null)
@@ -83,11 +84,17 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
   }, [open])
 
   useLayoutEffect(() => {
+    setSnapshot(undefined)
+    setError(undefined)
+  }, [sessionId])
+
+  useLayoutEffect(() => {
     if (!open || sessionId === undefined || terminalHost.current === null) return
     const controller = new AbortController()
     let timer: number | undefined
     let cursor = 0
     let stopped = false
+    let pollFailed = false
     let writes = Promise.resolve()
     const terminal = new Terminal({
       convertEol: false,
@@ -129,6 +136,8 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
       if (stopped) return
       try {
         const next = await api.read(sessionId, cursor, controller.signal)
+        if (pollFailed) setError(undefined)
+        pollFailed = false
         cursor = next.cursor
         if (next.truncated) terminal.reset()
         if (next.output.length > 0) terminal.write(next.output)
@@ -151,6 +160,7 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
         timer = window.setTimeout(() => { void poll() }, 260)
       } catch (cause) {
         if (!controller.signal.aborted) {
+          pollFailed = true
           setError(cause instanceof Error ? cause.message : String(cause))
           timer = window.setTimeout(() => { void poll() }, 1000)
         }
@@ -181,13 +191,7 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
       terminal.dispose()
       terminalInstance.current = undefined
     }
-  }, [api, open, sessionId])
-
-  useEffect(() => {
-    if (!open || sessionId !== undefined) return
-    setSnapshot(undefined)
-    setError(undefined)
-  }, [open, sessionId])
+  }, [api, open, sessionId, terminalGeneration])
 
   const perform = useCallback(async (operation: () => Promise<void>): Promise<void> => {
     setBusy(true)
@@ -202,6 +206,8 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
   }, [])
 
   const active = snapshot?.terminal?.action?.status === 'running'
+  const activeActionId = active ? snapshot.terminal?.action?.actionId : undefined
+  const processStatus = snapshot?.terminal?.process.status
 
   return (
     <div className={wide ? css.root : `${css.root} ${css.rail}`}>
@@ -253,6 +259,9 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
                       type="button"
                       disabled={busy || active}
                       data-kind={action.kind}
+                      data-active={activeActionId === action.id}
+                      aria-busy={activeActionId === action.id}
+                      title={action.command}
                       onClick={() => { void perform(() => api.runAction(sessionId, action.id)) }}
                     ><b>{actionGlyph(action.kind)}</b><span>{action.label}</span></button>)}
                     {snapshot !== undefined && snapshot.actions.length === 0 && <p className={css.muted}>{t('actions.empty')}</p>}
@@ -270,8 +279,8 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
                   <dl className={css.processList}>
                     <div><dt>{t('process.shell')}</dt><dd>{snapshot?.terminal?.process.pid ?? '—'}</dd></div>
                     <div><dt>{t('process.foreground')}</dt><dd>{snapshot?.terminal?.process.foreground?.processGroupId ?? '—'}</dd></div>
-                    <div><dt>{t('process.running')}</dt><dd>{snapshot?.terminal?.action === undefined
-                      ? t(`process.${snapshot?.terminal?.process.status ?? 'running'}`)
+                    <div><dt>{t('process.state')}</dt><dd>{snapshot?.terminal?.action === undefined
+                      ? t(snapshot?.terminal?.process.foreground?.inputWaiting === true ? 'process.waiting' : `process.${processStatus ?? 'running'}`)
                       : `${snapshot.terminal.action.label} · ${t(`actions.${snapshot.terminal.action.status}`)}`}</dd></div>
                   </dl>
                   <div className={css.processActions}>
@@ -281,6 +290,7 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
                       void perform(async () => {
                         await api.close(sessionId)
                         terminalInstance.current?.reset()
+                        setSnapshot(undefined)
                         setOpen(false)
                       })
                     }}>{t('actions.stop')}</button>
@@ -302,7 +312,12 @@ export function ProjectTerminalPanel({ wide, api, sessionList, t }: ProjectTermi
                 {loading && <div className={css.loading}>{t('loading')}</div>}
                 {error !== undefined && <div className={css.error} role="alert"><strong>{t('error.title')}</strong><span>{error}</span></div>}
                 <div ref={terminalHost} className={css.xtermHost} />
-                <footer><span>{snapshot?.terminal?.process.status === 'exited' ? t('process.exited') : t('process.running')}</span><kbd>{t('terminal.shortcut')}</kbd></footer>
+                <footer data-state={processStatus ?? 'connecting'} aria-live="polite">
+                  <span>{processStatus === 'exited' ? t('process.exited') : t(processStatus === 'running' ? 'process.running' : 'loading')}</span>
+                  {processStatus === 'exited'
+                    ? <button type="button" onClick={() => { setTerminalGeneration(value => value + 1) }}>{t('actions.restart')}</button>
+                    : <kbd>{t('terminal.shortcut')}</kbd>}
+                </footer>
               </main>
             </div>}
       </section>}

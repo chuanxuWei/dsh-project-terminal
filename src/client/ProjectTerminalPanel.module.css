@@ -294,6 +294,16 @@
   transform: translateY(-1px);
 }
 
+.actionGrid button[data-active='true'] {
+  border-color: #54b98c;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #fff) 84%, #54b98c 16%);
+  opacity: 1;
+}
+
+.actionGrid button[data-active='true'] b {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
 .actionGrid button:disabled,
 .processActions button:disabled,
 .setupCard button:disabled {
@@ -497,6 +507,24 @@
   font: inherit;
 }
 
+.terminalPane footer button {
+  padding: 3px 7px;
+  border: 1px solid #58d99e55;
+  border-radius: 5px;
+  background: #58d99e12;
+  color: #8ee7bd;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.terminalPane footer[data-state='exited'] span::before,
+.terminalPane footer[data-state='connecting'] span::before {
+  background: #76827e;
+  box-shadow: none;
+}
+
 .loading,
 .error {
   position: absolute;
@@ -583,15 +611,23 @@
   }
 
   .railPanel {
-    display: grid;
-    max-height: 180px;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    max-height: 190px;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-right: 0;
     border-bottom: 1px solid var(--dsw-alias-border-l2, #e1e5e2);
+    scroll-snap-type: x proximity;
   }
 
-  .railPanel > section:nth-child(n + 3) {
-    display: none;
+  .railPanel > section {
+    width: min(260px, 78vw);
+    min-width: min(260px, 78vw);
+    overflow-y: auto;
+    border-right: 1px solid var(--dsw-alias-border-l2, #e1e5e2);
+    border-bottom: 0;
+    scroll-snap-align: start;
   }
 
   .identity p,
@@ -602,6 +638,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .actionGrid button,
+  .actionGrid button[data-active='true'] b,
   .statusDot {
     transition: none;
     animation: none;

@@ -26,6 +26,8 @@ Agent 修改项目后，用户应该能直接复跑测试、检查输出或启�
 - 通过 `.dsh/environment.json` 定义项目 Actions 和平台化 setup。
 - DSH 为 linked Git worktree 创建 Session 时，可显式选择自动 setup。
 - 实时显示 Shell PID、前台进程组、Action 结果和经过 loopback 探测的开发端口。
+- 清楚显示 Action 执行中、等待输入等状态，并可在 Shell 退出后一键恢复。
+- 紧凑布局下通过横向状态栏保留 Actions、setup、进程和端口信息。
 - 通过 DSH 支持的 `sidebar.footer.action` 槽位挂载，并支持 <kbd>Ctrl</kbd> + <kbd>&#96;</kbd> 快捷键。
 - cwd 由 Host 根据 Session 解析，浏览器请求不能替换成其他 Checkout 路径。
 - Agent 只有有界读取工具，没有对应的写入或 Action 工具。
@@ -87,10 +89,10 @@ pnpm dlx @deepseek-ai/dsh@0.1.0-rc.8 web
 
 ## 验证记录
 
-版本 `0.1.0` 已针对 DSH `0.1.0-rc.8` 完成：
+版本 `0.1.1` 已针对 DSH `0.1.0-rc.8` 完成：
 
 - 冻结依赖安装、TypeScript 构建、包权限检查和 `pnpm pack --dry-run`；
-- 6 个 Vitest 文件、10 个测试，包括 linked-worktree setup 和 Agent 精确 Session 读取；
+- 6 个 Vitest 文件、12 个测试，包括 linked-worktree setup、退出 Shell 恢复和 Agent 精确 Session 读取；
 - 安装到隔离的 DSH Web Profile，并检查最终组合配置；
 - 真实 Host 监听/HTTP 和浏览器交互验证；
 - 终端输入、Test Action 成功状态、开发端口发现、中断处理和零浏览器错误。
@@ -100,6 +102,8 @@ pnpm dlx @deepseek-ai/dsh@0.1.0-rc.8 web
 ## 兼容性
 
 DeepSeek Harness 仍处于 Developer Preview。本版本只对 `0.1.0-rc.8` 做过验证，不承诺兼容其他候选版本。
+
+DSH `0.1.0-rc.8` 的 `SubprocessTerminalHandle` 尚未提供 PTY resize。xterm 会适配浏览器空间，但已经启动的 Host Shell 会继续使用打开时的行列数。
 
 ## 许可证
 

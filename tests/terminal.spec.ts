@@ -62,4 +62,14 @@ describe('human terminal', () => {
     await expect(terminal.run({ actionId: 'test', label: 'Test', kind: 'test', command: 'pnpm test' }))
       .rejects.toThrow('is still running')
   })
+
+  it('settles a running Action when its shell exits before emitting a marker', async () => {
+    const handle = new FakeTerminalHandle()
+    const terminal = new HumanTerminal('session-three', '/repo', handle, 64 * 1024)
+    await terminal.run({ actionId: 'build', label: 'Build', kind: 'build', command: 'exec build' })
+    await handle.terminate()
+    await new Promise(resolve => setImmediate(resolve))
+    expect(terminal.action()).toMatchObject({ status: 'succeeded', exitCode: 0 })
+    await expect(terminal.process()).resolves.toMatchObject({ status: 'exited' })
+  })
 })

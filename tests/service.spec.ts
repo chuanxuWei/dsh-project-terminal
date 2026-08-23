@@ -18,13 +18,12 @@ afterEach(async () => {
 })
 
 class FakeTerminalHandle implements SubprocessTerminalHandle {
-  readonly pid = 5100
   readonly output = new PassThrough()
   readonly writes: string[] = []
   readonly done: Promise<SubprocessOutcome>
   private readonly settled = Promise.withResolvers<SubprocessOutcome>()
 
-  constructor() {
+  constructor(readonly pid = 5100) {
     this.done = this.settled.promise
   }
 
@@ -32,6 +31,7 @@ class FakeTerminalHandle implements SubprocessTerminalHandle {
   async inspectForeground(): Promise<SubprocessTerminalForeground> { return { processGroupId: 5100, inputWaiting: true } }
   async signalForeground(_signal: SubprocessTerminalSignal): Promise<number> { return 5100 }
   async terminate(): Promise<void> { this.settled.resolve({ exitCode: 0, signal: null }) }
+  exit(exitCode = 0): void { this.settled.resolve({ exitCode, signal: null }) }
 }
 
 describe('project terminal service', () => {
@@ -69,6 +69,32 @@ describe('project terminal service', () => {
     await expect(service.readForAgent({ id: 'another-session' } as never, 10)).resolves.toMatchObject({
       available: false,
     })
+    await service.dispose()
+  })
+
+  it('replaces exited shells instead of retaining dead terminals or consuming their slots', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-project-terminal-service-'))
+    roots.push(root)
+    const firstHandle = new FakeTerminalHandle(5100)
+    const secondHandle = new FakeTerminalHandle(5200)
+    const handles = [firstHandle, secondHandle]
+    const ctx = {
+      sessions: { get: () => ({ header: { cwd: root } }) },
+      sessionPersistence: { inspect: async () => ({ meta: { cwd: root } }) },
+      subprocess: { spawnTerminal: async () => handles.shift() },
+    }
+    const service = new ProjectTerminalService(ctx as never, resolveOptions({
+      setupStatePath: join(root, '.state/setup.json'),
+      maxTerminals: 1,
+    }))
+    await service.start()
+    const first = await service.open('session-one', 30, 120)
+    expect(first.terminal?.process.pid).toBe(5100)
+    firstHandle.exit()
+    await new Promise(resolve => setImmediate(resolve))
+
+    const second = await service.open('session-two', 30, 120)
+    expect(second.terminal?.process.pid).toBe(5200)
     await service.dispose()
   })
 })

@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-terminal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Session-scoped human terminal, project Actions, worktree setup, and live process status for DeepSeek Harness",
   "license": "MIT",
   "author": "chuanxuWei",

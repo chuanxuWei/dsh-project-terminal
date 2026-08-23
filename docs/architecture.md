@@ -19,4 +19,6 @@ Actions are written to the same human shell. A private OSC marker records comple
 
 ## Lifecycle
 
-Terminals survive drawer close and Session navigation. The configured terminal limit fails loudly instead of deleting user processes. The user may explicitly stop a terminal, and Host plugin disposal awaits termination of every retained PTY session.
+Live terminals survive drawer close and Session navigation. Exited shells are removed before enforcing the configured terminal limit and are replaced when reopened; live user processes are never evicted. The user may explicitly stop a terminal, and Host plugin disposal awaits termination of every retained PTY session.
+
+DSH `0.1.0-rc.8` does not expose a resize operation on `SubprocessTerminalHandle`. The client fits xterm locally and chooses the initial PTY dimensions from the rendered drawer, but cannot update the Host PTY window size after creation.

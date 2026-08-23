@@ -32,5 +32,6 @@ Confirm the effective composition contains `dsh-project-terminal`, the Web endpo
 5. Call `project_terminal_read` from the same Session. Confirm it reads recent output, and inspect the model tool list to confirm there is no project terminal write/Action tool.
 6. Create a linked worktree Session with explicit `autoRunOnWorktree: true`. Confirm setup appears in the human terminal once, succeeds, and does not rerun for the same command digest after Host restart.
 7. Stop the terminal and confirm its complete process tree and listening development port exit.
+8. Exit the shell, use **Restart terminal**, and confirm a fresh Shell PID appears. At compact viewport width, horizontally scroll the status rail and confirm process and port cards remain reachable.
 
 Only the exact DSH version, operating system, and flows observed above should be reported as verified.

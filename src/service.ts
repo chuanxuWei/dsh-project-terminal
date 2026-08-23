@@ -72,7 +72,12 @@ export class ProjectTerminalService {
   async open(sessionId: string, rows: number, cols: number): Promise<ProjectTerminalOpenResult> {
     const cwd = await this.resolveCwd(sessionId)
     let terminal = this.terminals.get(sessionId)
+    if (terminal !== undefined && (await terminal.process()).status === 'exited') {
+      this.terminals.delete(sessionId)
+      terminal = undefined
+    }
     if (terminal === undefined) {
+      await this.pruneExitedTerminals()
       if (this.terminals.size >= this.options.maxTerminals) {
         throw new Error(`the ${String(this.options.maxTerminals)} terminal limit is reached; close one before opening another`)
       }
@@ -195,6 +200,17 @@ export class ProjectTerminalService {
     const terminal = this.terminals.get(sessionId)
     if (terminal === undefined) throw new Error('the Session terminal is not open')
     return terminal
+  }
+
+  private async pruneExitedTerminals(): Promise<void> {
+    const entries = [...this.terminals.entries()]
+    const states = await Promise.all(entries.map(async ([id, terminal]) => ({
+      id,
+      status: (await terminal.process()).status,
+    })))
+    for (const state of states) {
+      if (state.status === 'exited') this.terminals.delete(state.id)
+    }
   }
 
   private async resolveCwd(sessionId: string): Promise<string> {

@@ -26,6 +26,8 @@ This plugin separates the two paths:
 - Explicit project Actions and platform-specific setup through `.dsh/environment.json`.
 - Opt-in automatic setup when DSH creates a Session for a linked Git worktree.
 - Live Shell PID, foreground process group, Action result, and loopback-probed development ports.
+- Clear active-Action and input-waiting states, plus one-click recovery after a shell exits.
+- Compact layouts keep Actions, setup, process, and port cards available as a horizontal status rail.
 - <kbd>Ctrl</kbd> + <kbd>&#96;</kbd> shortcut and a terminal drawer mounted through DSH's supported `sidebar.footer.action` slot.
 - Host-authoritative cwd resolution: browser requests cannot substitute another checkout path.
 - Bounded output retention and a read-only Agent tool with no matching write or Action tool.
@@ -87,10 +89,10 @@ Commands still run with the DSH Host user's operating-system permissions. This i
 
 ## Validation
 
-Version `0.1.0` was validated against DSH `0.1.0-rc.8` with:
+Version `0.1.1` was validated against DSH `0.1.0-rc.8` with:
 
 - frozen dependency installation, TypeScript build, package authority checks, and `pnpm pack --dry-run`;
-- 6 Vitest files and 10 tests, including linked-worktree setup and exact-Session Agent reads;
+- 6 Vitest files and 12 tests, including linked-worktree setup, dead-shell recovery, and exact-Session Agent reads;
 - installation into an isolated DSH Web profile and composed-config inspection;
 - real Host listener/HTTP checks and browser interaction;
 - terminal input, a passing Test Action, live port discovery, interrupt handling, and zero browser errors.
@@ -100,6 +102,8 @@ See [architecture](docs/architecture.md), [manual verification](docs/manual-veri
 ## Compatibility
 
 DeepSeek Harness is still a Developer Preview. This release is verified only against `0.1.0-rc.8`; compatibility with other release candidates is not implied.
+
+DSH `0.1.0-rc.8` does not expose PTY resize on `SubprocessTerminalHandle`. xterm fits the available browser space, but an already-running Host shell keeps the row and column dimensions used when it was opened.
 
 ## License
 
